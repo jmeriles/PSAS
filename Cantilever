@@ -1,0 +1,108 @@
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jul  6 19:37:16 2020
+
+@author: jim53
+"""
+
+from IPython import get_ipython
+import numpy as np
+from Model import Model
+from PlotModel import PlotModel
+#get_ipython().magic('reset -sf')
+from Analyze import Analyze
+from GMread import GMread
+import scipy.interpolate as sp
+
+ModelSet=['Planar','line']
+#Number and define NODE locations
+NODE=[]
+NODE.insert(0,[0,0])
+NODE.insert(1,[0,5])
+
+CON=[[1,2]]
+
+#Turn selfweight on and off
+selfweight=0
+
+#Add nodal masses
+Node_Mass=[1,1]
+
+# DO NOT EDIT THIS
+Model=Model(NODE,CON,Node_Mass,selfweight,ModelSet)
+
+#Set the Boundary conditions at the nodes where there are boundaries.
+#Others will have no BC
+
+Model.BOUN[0]=[1,1,1];
+
+
+
+#USER Define loading
+Model.LOAD[1]=[5,0,0,0,0,0]
+
+#DO NOT EDIT THIS
+# Given Node Locations, connectivity, Element Type, BC, and Loading, initiates elements
+el=Model.init_el()
+
+# USER Define E A and I, releases, q0 and w here
+
+#w is defined as positive outwards and negative into the beam
+#Order of basic forces is [axial, torsion, Myi,Myj,Mzi,Mzj]
+
+for i in range (Model.numel):
+    el[i].Iz=10000
+    el[i].A=1000
+    el[i].E=1
+
+
+#el[1].Iz = 1000000000000000
+#el[1].REL=[np.inf,np.inf,0,np.inf,np.inf,np.inf];
+
+#el[0].w_y=10
+#el[0].hybrid = 1
+
+
+
+Ground_Motion='GM1.txt'
+DynOp=[.25,.5,.01,[1,0,0]]
+#DO NOT EDIT
+el=Model.elMat(el)
+Model.Create_B(el)
+Model.Create_K()
+Model.Create_M()
+
+
+
+
+
+K=Model.K
+M=Model.M
+
+masslessDOF = []
+massDOF = []
+for i in range(len(M)):
+    if M[i,i] == 0:
+        masslessDOF.append(i)
+    else:
+        massDOF.append(i)
+        
+NewOrder = np.hstack([massDOF,masslessDOF])
+K_cond = np.matrix([[K[i,j] for i in NewOrder] for j in NewOrder])
+K_mass = K_cond[0:len(massDOF),0:len(massDOF)]
+K_mass_nmass = K_cond[len(massDOF):,0:len(massDOF)]
+K_nmass = K_cond[len(massDOF):,len(massDOF):]
+K_cond = K_mass-K_mass_nmass.T @ np.linalg.inv(K_nmass) @ K_mass_nmass
+M_cond = np.matrix([[M[i,j] for i in NewOrder] for j in NewOrder])
+M_cond = M_cond[0:len(massDOF),0:len(massDOF)]
+
+An=Analyze()
+
+#Static Analysis
+An.Displ(Model,el)
+plot = PlotModel()
+plot.Struct(Model,el)
+plot.DefShape(Model,el)
+

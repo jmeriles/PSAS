@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 10 13:09:20 2022
+
+@author: juanmeriles
+"""
+import numpy as np
+from GMread import GMread
+import matplotlib.pyplot as plt
+
+M = np.array([[ 7.59057786e+04,  1.00000000e-18,  2.30952673e+04,
+          1.66666500e+04,  1.00000000e-18,  1.00000000e-18,
+          1.00000000e-18],
+        [ 1.00000000e-18,  5.22391286e+04,  1.00000000e-18,
+          1.00000000e-18,  1.92855890e+03, -1.92856475e+04,
+          1.00000000e-18],
+        [ 2.30952673e+04,  1.00000000e-18,  7.85717626e+04,
+          1.00000000e-18,  1.00000000e-18,  1.00000000e-18,
+          1.00000000e-18],
+        [ 1.66666500e+04,  1.00000000e-18,  1.00000000e-18,
+          7.59057786e+04,  1.00000000e-18,  2.30952673e+04,
+          2.26195486e+03],
+        [ 1.00000000e-18,  1.92855890e+03,  1.00000000e-18,
+          1.00000000e-18,  7.72391036e+04, -1.05714227e+05,
+          1.00000000e-18],
+        [ 1.00000000e-18, -1.92856475e+04,  1.00000000e-18,
+          2.30952673e+04, -1.05714227e+05,  4.69048454e+05,
+         -2.55950711e+04],
+        [ 1.00000000e-18,  1.00000000e-18,  1.00000000e-18,
+          2.26195486e+03,  1.00000000e-18, -2.55950711e+04,
+          7.85717626e+04]])
+
+Ground_Motion='El_Centro.txt'
+GM=GMread(Ground_Motion)
+GM = np.array(GM)
+
+P1 = P=np.zeros((7,GM.shape[0]))
+influence = np.array([1,0,0,1,0,0,0])
+
+for i in range(GM.shape[0]-1):
+    P1[:,i+1]=-np.transpose(np.matmul(M,GM[i+1]*np.transpose(influence)))
+
+plt.figure(6)
+plt.plot(P1[0,:])
+
+P2 = P=np.zeros((6,GM.shape[0]))
+influence = np.array([1,0,1,0,0,0])
+M = np.delete(M,2,axis = 1)
+M = np.delete(M,2,axis = 0)
+
+for i in range(GM.shape[0]-1):
+    P2[:,i+1]=-np.transpose(np.matmul(M,GM[i+1]*np.transpose(influence)))
+    
+plt.figure(8)
+plt.plot(P2[0,:])
